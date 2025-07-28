@@ -1,0 +1,35 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "Python 3 + Node.js + Claude CLI",
+	"image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
+	// 👇 Feature installations (automatic during rebuild)
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "lts" // or "20" if you want to pin
+		}
+	},
+	// ✅ Add extensions here if you want (optional)
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"esbenp.prettier-vscode",
+				"dbaeumer.vscode-eslint",
+				"eamodio.gitlens"
+			]
+		}
+	},
+	// ✅ Mount Claude auth from host to persist session
+	"mounts": [
+		"source=${env:HOME}/.config/claude,target=/home/vscode/.config/claude,type=bind"
+	],
+	// ✅ (Optional) set to root if that's your preferred container user
+	"remoteUser": "vscode",
+	// ✅ Run Claude CLI setup script after container is built
+	"postCreateCommand": "/bin/bash .devcontainer/setup-claude.sh"
+}

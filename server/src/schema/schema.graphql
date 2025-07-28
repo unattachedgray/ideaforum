@@ -1,0 +1,198 @@
+# GraphQL Schema for Idea Forum
+
+# Scalar Types
+scalar DateTime
+scalar JSON
+
+# Enums
+enum VoteType {
+  UP
+  DOWN
+  PROMOTE
+}
+
+enum ViewMode {
+  THREAD
+  WIKI
+}
+
+enum SectionStatus {
+  DRAFT
+  ACTIVE
+  CONSENSUS
+  CONTESTED
+}
+
+# Object Types
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  avatar: String
+  bio: String
+  isActive: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  documents: [Document!]
+  sections: [Section!]
+  votes: [Vote!]
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type Document {
+  id: ID!
+  title: String!
+  description: String
+  author: User!
+  sections(parentId: ID): [Section!]
+  isPublic: Boolean!
+  tags: [String!]
+  viewCount: Int!
+  lastActivityAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Section {
+  id: ID!
+  document: Document!
+  content: String!
+  author: User!
+  parent: Section
+  children: [Section!]
+  position: Int!
+  metadata: SectionMetadata!
+  versions: [SectionVersion!]
+  votes: [Vote!]
+  voteScore: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type SectionMetadata {
+  wikiVisibility: Boolean!
+  wikiPosition: Int
+  consensusLevel: Float
+  promotionVotes: Int!
+  status: SectionStatus!
+  markupTags: [String!]
+  threadDepth: Int!
+}
+
+type SectionVersion {
+  id: ID!
+  section: Section!
+  content: String!
+  metadata: SectionMetadata!
+  version: Int!
+  changeReason: String
+  createdAt: DateTime!
+}
+
+type Vote {
+  id: ID!
+  user: User!
+  section: Section!
+  type: VoteType!
+  value: Int!
+  createdAt: DateTime!
+}
+
+# Input Types
+input UserInput {
+  username: String!
+  email: String!
+  bio: String
+}
+
+input GoogleLoginInput {
+  token: String!
+}
+
+input DocumentInput {
+  title: String!
+  description: String
+  isPublic: Boolean
+  tags: [String!]
+}
+
+input SectionInput {
+  documentId: ID!
+  content: String!
+  parentId: ID
+  position: Int
+  metadata: SectionMetadataInput
+}
+
+input SectionMetadataInput {
+  wikiVisibility: Boolean
+  wikiPosition: Int
+  consensusLevel: Float
+  promotionVotes: Int
+  status: SectionStatus
+  markupTags: [String!]
+  threadDepth: Int
+}
+
+input VoteInput {
+  sectionId: ID!
+  type: VoteType!
+}
+
+# Query Type
+type Query {
+  # User queries
+  me: User
+  user(id: ID!): User
+  users(limit: Int, offset: Int): [User!]
+
+  # Document queries
+  document(id: ID!): Document
+  documents(
+    limit: Int
+    offset: Int
+    authorId: ID
+    isPublic: Boolean
+    tags: [String!]
+  ): [Document!]
+  searchDocuments(query: String!, limit: Int, offset: Int): [Document!]
+
+  # Section queries
+  section(id: ID!): Section
+  sections(documentId: ID!, parentId: ID, limit: Int, offset: Int): [Section!]
+}
+
+# Mutation Type
+type Mutation {
+  # User mutations
+  requestLoginLink(email: String!): Boolean!
+  loginWithToken(token: String!): AuthPayload!
+  loginWithGoogle(input: GoogleLoginInput!): AuthPayload!
+  updateUser(input: UserInput!): User!
+  deleteUser: Boolean!
+
+  # Document mutations
+  createDocument(input: DocumentInput!): Document!
+  updateDocument(id: ID!, input: DocumentInput!): Document!
+  deleteDocument(id: ID!): Boolean!
+
+  # Section mutations
+  createSection(input: SectionInput!): Section!
+  updateSection(id: ID!, input: SectionInput!): Section!
+  deleteSection(id: ID!): Boolean!
+  promoteToWiki(sectionId: ID!): Section!
+
+  # Vote mutations
+  castVote(input: VoteInput!): Vote!
+}
+
+# Subscription Type
+type Subscription {
+  sectionAdded(documentId: ID!): Section
+  sectionUpdated(documentId: ID!): Section
+  voteCasted(documentId: ID!): Vote
+}
