@@ -1,13 +1,11 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euxo pipefail
 
 # Install Claude CLI if missing
-if [ ! -f "$HOME/claude-code/claude" ]; then
-  echo "Installing Claude CLI..."
-  git clone https://github.com/anthropics/claude.git "$HOME/claude-code"
-  chmod +x "$HOME/claude-code/claude"
-  ln -sf "$HOME/claude-code/claude" /usr/local/bin/claude
+if ! command -v claude &> /dev/null; then
+  echo "Installing Claude CLI via npm…"
+  npm install -g @anthropic-ai/claude-code
 fi
 
-# Test that it's available
+# Verify installation/auth
 claude whoami || echo "⚠️ Claude CLI not yet authenticated."
