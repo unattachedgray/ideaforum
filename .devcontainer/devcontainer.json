@@ -40,10 +40,20 @@
     5000
   ],
   "mounts": [
+    // Persist Claude CLI auth
     "source=${localEnv:HOME}/.config/claude,target=/home/vscode/.config/claude,type=bind",
+    // Persist npm cache
     "source=${localEnv:HOME}/.npm,target=/home/vscode/.npm,type=bind",
-    "source=${localEnv:HOME}/.cache/pip,target=/home/vscode/.cache/pip,type=bind"
+    // Persist pip cache
+    "source=${localEnv:HOME}/.cache/pip,target=/home/vscode/.cache/pip,type=bind",
+    // Persist Git identity & settings
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind",
+    // Persist SSH keys (read‑only)
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh:ro,type=bind",
+    // Persist GitHub CLI credentials
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind"
   ],
   "remoteUser": "vscode",
   "postCreateCommand": "/bin/bash .devcontainer/setup-claude.sh"
 }
+
