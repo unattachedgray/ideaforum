@@ -36,7 +36,7 @@ async function startServer(): Promise<void> {
 
     // Security middleware
     app.use(helmet({
-      contentSecurityPolicy: NODE_ENV === 'production' ? undefined : false,
+      contentSecurityPolicy: NODE_ENV === 'production' ? true : false,
       crossOriginEmbedderPolicy: false,
     }));
 
@@ -59,7 +59,7 @@ async function startServer(): Promise<void> {
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // Health check endpoint
-    app.get('/health', (req, res) => {
+    app.get('/health', (_req, res) => {
       res.status(200).json({
         status: 'OK',
         timestamp: new Date().toISOString(),
@@ -91,7 +91,7 @@ async function startServer(): Promise<void> {
 
     // Apply Apollo GraphQL middleware
     apolloServer.applyMiddleware({ 
-      app, 
+      app: app as any, 
       path: '/graphql',
       cors: false, // We handle CORS above
     });

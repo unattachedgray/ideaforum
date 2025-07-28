@@ -1,7 +1,7 @@
 import knex, { Knex } from 'knex';
-import knexConfig from '../../knexfile';
 import { logger } from './logger';
 
+const knexConfig = require('../../knexfile') as any;
 const environment = process.env.NODE_ENV || 'development';
 const config = knexConfig[environment];
 

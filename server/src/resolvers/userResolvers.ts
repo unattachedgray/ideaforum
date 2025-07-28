@@ -1,8 +1,8 @@
 import { IResolvers } from '@graphql-tools/utils';
-import { User, UserInput } from '@shared/types';
+import { User, UserInput } from '../types';
 import { Context } from '../utils/context';
-import { generateToken, verifyToken } from '../utils/jwt';
-import { AuthenticationError, UserInputError } from 'apollo-server-express';
+import { generateToken } from '../utils/jwt';
+import { AuthenticationError } from 'apollo-server-express';
 import { UserModel } from '../models/UserModel';
 import { OAuth2Client } from 'google-auth-library';
 import { getRedisClient } from '../utils/redis';
@@ -62,6 +62,10 @@ export const userResolvers: IResolvers = {
       return { token: sessionToken, user };
     },
     loginWithGoogle: async (_: any, { input }: { input: { token: string } }): Promise<{ token: string; user: User }> => {
+      if (!GOOGLE_CLIENT_ID) {
+        throw new AuthenticationError('Google OAuth not configured');
+      }
+      
       const ticket = await client.verifyIdToken({
         idToken: input.token,
         audience: GOOGLE_CLIENT_ID,

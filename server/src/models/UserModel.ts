@@ -1,5 +1,5 @@
 import { getDb } from '../utils/database';
-import { User, UserInput } from '@shared/types';
+import { User, UserInput } from '../types';
 
 const TABLE_NAME = 'users';
 

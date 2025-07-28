@@ -1,5 +1,5 @@
 import { getDb } from '../utils/database';
-import { Section, SectionInput, SectionQueryOptions } from '@shared/types';
+import { Section, SectionInput, SectionQueryOptions } from '../types';
 
 const TABLE_NAME = 'sections';
 
@@ -14,18 +14,18 @@ export const SectionModel = {
   },
 
   async getByAuthorIds(authorIds: string[]): Promise<Section[]> {
-    return await getDb()<Section>(TABLE_NAME).whereIn('author_id', authorIds);
+    return await getDb()<Section>(TABLE_NAME).whereIn('authorId', authorIds);
   },
 
   async getByDocumentIds(documentIds: string[]): Promise<Section[]> {
-    return await getDb()<Section>(TABLE_NAME).whereIn('document_id', documentIds);
+    return await getDb()<Section>(TABLE_NAME).whereIn('documentId', documentIds);
   },
 
   async getAll(options: SectionQueryOptions): Promise<Section[]> {
     const query = getDb()<Section>(TABLE_NAME);
-    if (options.documentId) query.where({ document_id: options.documentId });
-    if (options.authorId) query.where({ author_id: options.authorId });
-    if (options.parentId) query.where({ parent_id: options.parentId });
+    if (options.documentId) query.where('documentId', options.documentId);
+    if (options.authorId) query.where('authorId', options.authorId);
+    if (options.parentId) query.where('parentId', options.parentId);
     if (options.wikiVisibility !== undefined) query.whereRaw(`metadata->>'wikiVisibility' = ?`, [options.wikiVisibility]);
     if (options.status) query.whereRaw(`metadata->>'status' = ?`, [options.status]);
     if (options.limit) query.limit(options.limit);
@@ -35,12 +35,12 @@ export const SectionModel = {
   },
 
   async create(input: SectionInput & { authorId: string }): Promise<Section> {
-    const [section] = await getDb()<Section>(TABLE_NAME).insert(input).returning('*');
+    const [section] = await getDb()<Section>(TABLE_NAME).insert(input as any).returning('*');
     return section;
   },
 
   async update(id: string, input: Partial<SectionInput>): Promise<Section | null> {
-    const [section] = await getDb()<Section>(TABLE_NAME).where({ id }).update(input).returning('*');
+    const [section] = await getDb()<Section>(TABLE_NAME).where({ id }).update(input as any).returning('*');
     return section || null;
   },
 

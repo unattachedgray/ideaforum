@@ -1,5 +1,5 @@
 import { IResolvers } from '@graphql-tools/utils';
-import { Section, SectionInput } from '@shared/types';
+import { Section, SectionInput } from '../types';
 import { Context } from '../utils/context';
 import { AuthenticationError, UserInputError } from 'apollo-server-express';
 import { SectionModel } from '../models/SectionModel';
@@ -18,7 +18,7 @@ export const sectionResolvers: IResolvers = {
       { dataLoaders }: Context
     ): Promise<Section[]> => {
       const sections = await dataLoaders.sectionsByDocumentLoader.load(documentId);
-      const filtered = sections.filter(s => (parentId ? s.parentId === parentId : !s.parentId));
+      const filtered = sections.filter((s: Section) => (parentId ? s.parentId === parentId : !s.parentId));
       return filtered.slice(offset, offset + limit);
     },
   },
@@ -111,7 +111,7 @@ export const sectionResolvers: IResolvers = {
     },
     children: async (parent: Section, _: any, { dataLoaders }: Context) => {
       const allSections = await dataLoaders.sectionsByDocumentLoader.load(parent.documentId);
-      return allSections.filter(s => s.parentId === parent.id);
+      return allSections.filter((s: Section) => s.parentId === parent.id);
     },
     versions: async (parent: Section, _: any, { dataLoaders }: Context) => {
       return await dataLoaders.versionsBySectionLoader.load(parent.id);

@@ -1,5 +1,5 @@
 import { getDb } from '../utils/database';
-import { Document, DocumentInput, DocumentQueryOptions } from '@shared/types';
+import { Document, DocumentInput, DocumentQueryOptions } from '../types';
 
 const TABLE_NAME = 'documents';
 
@@ -14,14 +14,14 @@ export const DocumentModel = {
   },
 
   async getByAuthorIds(authorIds: string[]): Promise<Document[]> {
-    return await getDb()<Document>(TABLE_NAME).whereIn('author_id', authorIds);
+    return await getDb()<Document>(TABLE_NAME).whereIn('authorId', authorIds);
   },
 
   async getAll(options: DocumentQueryOptions): Promise<Document[]> {
     const query = getDb()<Document>(TABLE_NAME);
-    if (options.authorId) query.where({ author_id: options.authorId });
-    if (options.isPublic !== undefined) query.where({ is_public: options.isPublic });
-    if (options.tags && options.tags.length > 0) query.whereRaw('tags @> ?', [options.tags]);
+    if (options.authorId) query.where('authorId', options.authorId);
+    if (options.isPublic !== undefined) query.where('isPublic', options.isPublic);
+    if (options.tags && options.tags.length > 0) query.whereRaw('tags @> ?', [JSON.stringify(options.tags)]);
     if (options.search) query.where('title', 'ilike', `%${options.search}%`);
     if (options.limit) query.limit(options.limit);
     if (options.offset) query.offset(options.offset);

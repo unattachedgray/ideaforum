@@ -1,5 +1,5 @@
 import { IResolvers } from '@graphql-tools/utils';
-import { Document, DocumentInput } from '@shared/types';
+import { Document, DocumentInput, Section } from '../types';
 import { Context } from '../utils/context';
 import { AuthenticationError, UserInputError } from 'apollo-server-express';
 import { DocumentModel } from '../models/DocumentModel';
@@ -72,9 +72,9 @@ export const documentResolvers: IResolvers = {
     sections: async (parent: Document, { parentId }: { parentId?: string }, { dataLoaders }: Context) => {
       const sections = await dataLoaders.sectionsByDocumentLoader.load(parent.id);
       if (parentId) {
-        return sections.filter(section => section.parentId === parentId);
+        return sections.filter((section: Section) => section.parentId === parentId);
       }
-      return sections.filter(section => !section.parentId); // Return root sections
+      return sections.filter((section: Section) => !section.parentId); // Return root sections
     },
   },
 };
