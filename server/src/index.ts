@@ -1,7 +1,9 @@
 import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { createServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
+import { WebSocketServer } from 'ws';
+import { useServer } from 'graphql-ws/lib/use/ws';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -12,7 +14,6 @@ import { createContext } from './utils/context';
 import { initializeDatabase } from './utils/database';
 import { initializeRedis } from './utils/redis';
 import { logger } from './utils/logger';
-import { authMiddleware } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 
 // Load environment variables
@@ -99,39 +100,27 @@ async function startServer(): Promise<void> {
     // Create HTTP server
     const httpServer = createServer(app);
 
-    // Initialize Socket.IO
-    const io = new SocketIOServer(httpServer, {
-      cors: {
-        origin: process.env.CLIENT_URL || 'http://localhost:3000',
-        methods: ['GET', 'POST'],
-        credentials: true,
+    // Create executable schema for subscriptions
+    const schema = makeExecutableSchema({
+      typeDefs,
+      resolvers,
+    });
+
+    // Create WebSocket server for GraphQL subscriptions
+    const wsServer = new WebSocketServer({
+      server: httpServer,
+      path: '/graphql',
+    });
+
+    // Setup GraphQL WebSocket server
+    const serverCleanup = useServer({
+      schema,
+      context: async (ctx) => {
+        // Extract auth token from connection params
+        const token = ctx.connectionParams?.Authorization || ctx.connectionParams?.authorization;
+        return createContext({ req: { headers: { authorization: token } } } as any);
       },
-    });
-
-    // Socket.IO authentication middleware
-    io.use(authMiddleware);
-
-    // Socket.IO connection handling
-    io.on('connection', (socket) => {
-      logger.info(`User connected: ${socket.id}`);
-
-      // Join document rooms for real-time updates
-      socket.on('join-document', (documentId: string) => {
-        socket.join(`document:${documentId}`);
-        logger.info(`User ${socket.id} joined document ${documentId}`);
-      });
-
-      // Leave document rooms
-      socket.on('leave-document', (documentId: string) => {
-        socket.leave(`document:${documentId}`);
-        logger.info(`User ${socket.id} left document ${documentId}`);
-      });
-
-      // Handle disconnection
-      socket.on('disconnect', () => {
-        logger.info(`User disconnected: ${socket.id}`);
-      });
-    });
+    }, wsServer);
 
     // Error handling middleware (must be last)
     app.use(errorHandler);
@@ -140,13 +129,14 @@ async function startServer(): Promise<void> {
     httpServer.listen(PORT, () => {
       logger.info(`🚀 Server ready at http://localhost:${PORT}`);
       logger.info(`📊 GraphQL endpoint: http://localhost:${PORT}${apolloServer.graphqlPath}`);
-      logger.info(`🔌 Socket.IO ready for connections`);
+      logger.info(`🔌 GraphQL WebSocket subscriptions ready at ws://localhost:${PORT}/graphql`);
       logger.info(`🌍 Environment: ${NODE_ENV}`);
     });
 
     // Graceful shutdown
     process.on('SIGTERM', () => {
       logger.info('SIGTERM received, shutting down gracefully');
+      serverCleanup.dispose();
       httpServer.close(() => {
         logger.info('Process terminated');
         process.exit(0);
@@ -155,6 +145,7 @@ async function startServer(): Promise<void> {
 
     process.on('SIGINT', () => {
       logger.info('SIGINT received, shutting down gracefully');
+      serverCleanup.dispose();
       httpServer.close(() => {
         logger.info('Process terminated');
         process.exit(0);

@@ -23,6 +23,25 @@ enum SectionStatus {
   CONTESTED
 }
 
+enum FallacyType {
+  AD_HOMINEM
+  STRAW_MAN
+  FALSE_DILEMMA
+  SLIPPERY_SLOPE
+  APPEAL_TO_AUTHORITY
+  CIRCULAR_REASONING
+  HASTY_GENERALIZATION
+  RED_HERRING
+  APPEAL_TO_EMOTION
+  BANDWAGON_FALLACY
+}
+
+enum FallacySeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 # Object Types
 type User {
   id: ID!
@@ -102,6 +121,47 @@ type Vote {
   createdAt: DateTime!
 }
 
+# Logic Analysis Types
+type LogicalFallacy {
+  id: String!
+  type: FallacyType!
+  description: String!
+  suggestion: String!
+  confidence: Float!
+  severity: FallacySeverity!
+}
+
+type ArgumentMetrics {
+  logicScore: Float!
+  evidenceStrength: Float!
+  coherenceRating: Float!
+  counterArgumentConsideration: Float!
+  overallQuality: Float!
+}
+
+type AIAnalysisResult {
+  sectionId: String!
+  logicScore: Float!
+  detectedFallacies: [LogicalFallacy!]!
+  argumentMetrics: ArgumentMetrics!
+  improvementSuggestions: [String!]!
+  analysisVersion: Int!
+  analyzedAt: DateTime!
+}
+
+type FallacyDefinition {
+  type: String!
+  name: String!
+  description: String!
+  examples: [String!]!
+}
+
+type AIStatus {
+  available: Boolean!
+  model: String!
+  configured: Boolean!
+}
+
 # Input Types
 input UserInput {
   username: String!
@@ -164,6 +224,11 @@ type Query {
   # Section queries
   section(id: ID!): Section
   sections(documentId: ID!, parentId: ID, limit: Int, offset: Int): [Section!]
+
+  # Logic Analysis queries
+  analyzeArgument(content: String!): AIAnalysisResult!
+  getAIStatus: AIStatus!
+  getFallacyDefinitions: [FallacyDefinition!]!
 }
 
 # Mutation Type
@@ -188,6 +253,10 @@ type Mutation {
 
   # Vote mutations
   castVote(input: VoteInput!): Vote!
+
+  # Logic Analysis mutations
+  requestSectionAnalysis(sectionId: ID!): AIAnalysisResult!
+  batchAnalyzeSections(sectionIds: [ID!]!): [AIAnalysisResult!]!
 }
 
 # Subscription Type

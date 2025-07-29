@@ -5,6 +5,7 @@ import { userResolvers } from './userResolvers';
 import { documentResolvers } from './documentResolvers';
 import { sectionResolvers } from './sectionResolvers';
 import { voteResolvers } from './voteResolvers';
+import { logicResolvers } from './logicResolvers';
 
 const customScalarResolver = {
   DateTime: new GraphQLScalarType({
@@ -50,5 +51,6 @@ export const resolvers = merge(
   userResolvers,
   documentResolvers,
   sectionResolvers,
-  voteResolvers
+  voteResolvers,
+  logicResolvers
 );

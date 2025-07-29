@@ -119,14 +119,17 @@ export interface VoteInput {
 
 // Custom markup types
 export interface MarkupBlock {
-  type: 'wiki-primary' | 'thread-only' | 'consensus' | 'debate';
+  type: 'wiki-primary' | 'thread-only' | 'consensus' | 'debate' | 'synthesis';
   content: string;
-  attributes?: Record<string, string | number>;
+  attributes?: Record<string, any>;
+  startPosition: number;
+  endPosition: number;
 }
 
 export interface ParsedContent {
   blocks: MarkupBlock[];
   plainText: string;
+  metadata?: any;
 }
 
 // View types
@@ -175,6 +178,126 @@ export interface RealtimeEvent {
   timestamp: Date;
   userId: string;
   documentId?: string;
+}
+
+// Phase 2: Logic Analysis Types
+export enum FallacyType {
+  AD_HOMINEM = 'ad_hominem',
+  STRAW_MAN = 'straw_man',
+  FALSE_DILEMMA = 'false_dilemma',
+  SLIPPERY_SLOPE = 'slippery_slope',
+  APPEAL_TO_AUTHORITY = 'appeal_to_authority',
+  CIRCULAR_REASONING = 'circular_reasoning',
+  HASTY_GENERALIZATION = 'hasty_generalization',
+  RED_HERRING = 'red_herring',
+  APPEAL_TO_EMOTION = 'appeal_to_emotion',
+  BANDWAGON_FALLACY = 'bandwagon_fallacy'
+}
+
+export interface LogicalFallacy {
+  id: string;
+  type: FallacyType;
+  description: string;
+  suggestion: string;
+  confidence: number; // 0-1
+  location: {
+    start: number;
+    end: number;
+  };
+  severity: 'low' | 'medium' | 'high';
+}
+
+export interface ArgumentMetrics {
+  logicScore: number; // 0-10
+  evidenceStrength: number; // 0-10
+  coherenceRating: number; // 0-10
+  counterArgumentConsideration: number; // 0-10
+  overallQuality: number; // 0-10
+}
+
+export interface AIAnalysisResult {
+  sectionId: string;
+  logicScore: number;
+  detectedFallacies: LogicalFallacy[];
+  argumentMetrics: ArgumentMetrics;
+  improvementSuggestions: string[];
+  analysisVersion: number;
+  analyzedAt: Date;
+}
+
+export interface UserSkillLevels {
+  criticalThinking: number; // 0-100
+  evidenceEvaluation: number; // 0-100
+  argumentConstruction: number; // 0-100
+  logicalCoherence: number; // 0-100
+  fallacyRecognition: number; // 0-100
+}
+
+export interface LearningProgress extends BaseEntity {
+  userId: string;
+  user?: User;
+  skillLevels: UserSkillLevels;
+  completedTutorials: string[];
+  practiceSessionsCompleted: number;
+  improvementRate: number;
+  weakAreas: string[];
+  nextRecommendations: string[];
+  totalContributions: number;
+  qualityContributions: number;
+  averageLogicScore: number;
+}
+
+export interface FallacyDefinition extends BaseEntity {
+  fallacyType: FallacyType;
+  name: string;
+  description: string;
+  examples: string[];
+  howToAvoid: string;
+  category: 'formal' | 'informal' | 'statistical';
+  commonIn: string[];
+}
+
+export interface TutorialModule extends BaseEntity {
+  title: string;
+  description: string;
+  category: 'fallacies' | 'argument_construction' | 'evidence_evaluation' | 'critical_thinking';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  content: string;
+  exercises: TutorialExercise[];
+  completionCriteria: string[];
+  estimatedDuration: number; // minutes
+}
+
+export interface TutorialExercise {
+  id: string;
+  type: 'identify_fallacy' | 'construct_argument' | 'evaluate_evidence' | 'multiple_choice';
+  question: string;
+  options?: string[];
+  correctAnswer: string | string[];
+  explanation: string;
+  points: number;
+}
+
+export interface LearningSession extends BaseEntity {
+  userId: string;
+  user?: User;
+  moduleId: string;
+  module?: TutorialModule;
+  startedAt: Date;
+  completedAt?: Date;
+  score: number;
+  timeSpent: number; // minutes
+  exerciseResults: ExerciseResult[];
+  improvementAreas: string[];
+}
+
+export interface ExerciseResult {
+  exerciseId: string;
+  userAnswer: string | string[];
+  isCorrect: boolean;
+  timeSpent: number; // seconds
+  hintsUsed: number;
+  score: number;
 }
 
 // Error types

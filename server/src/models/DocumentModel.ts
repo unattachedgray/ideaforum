@@ -69,11 +69,24 @@ export const DocumentModel = {
   },
 
   async search(searchText: string, options: DocumentQueryOptions): Promise<Document[]> {
-    return await getDb()<Document>(TABLE_NAME)
+    const dbDocs = await getDb()(TABLE_NAME)
       .where('title', 'ilike', `%${searchText}%`)
       .orWhere('description', 'ilike', `%${searchText}%`)
+      .andWhere('is_public', true) // Only search public documents for now
+      .orderBy('last_activity_at', 'desc')
       .limit(options.limit || 10)
       .offset(options.offset || 0);
+    
+    // Map database fields to camelCase
+    return dbDocs.map((dbDoc: any) => ({
+      ...dbDoc,
+      authorId: dbDoc.author_id,
+      isPublic: dbDoc.is_public,
+      viewCount: dbDoc.view_count,
+      lastActivityAt: dbDoc.last_activity_at,
+      createdAt: dbDoc.created_at,
+      updatedAt: dbDoc.updated_at
+    }));
   },
 
   async create(input: DocumentInput & { authorId: string }): Promise<Document> {

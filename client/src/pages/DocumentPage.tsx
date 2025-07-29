@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, gql } from '@apollo/client';
+import { useQuery, useMutation, useSubscription, gql } from '@apollo/client';
 import { useAuth } from '../store/AuthContext';
+import { LogicAnalysisPanel } from '../components/LogicAnalysisPanel';
+import { ClientMarkupParser } from '../utils/markupParser';
 
 const GET_DOCUMENT = gql`
   query GetDocument($id: ID!) {
@@ -60,18 +62,123 @@ const CREATE_SECTION = gql`
   }
 `;
 
+const CAST_VOTE = gql`
+  mutation CastVote($input: VoteInput!) {
+    castVote(input: $input) {
+      id
+      type
+      value
+    }
+  }
+`;
+
+const SECTION_ADDED_SUBSCRIPTION = gql`
+  subscription SectionAdded($documentId: ID!) {
+    sectionAdded(documentId: $documentId) {
+      id
+      content
+      position
+      voteScore
+      author {
+        id
+        username
+      }
+      createdAt
+    }
+  }
+`;
+
+const SECTION_UPDATED_SUBSCRIPTION = gql`
+  subscription SectionUpdated($documentId: ID!) {
+    sectionUpdated(documentId: $documentId) {
+      id
+      content
+      position
+      voteScore
+      author {
+        id
+        username
+      }
+      createdAt
+    }
+  }
+`;
+
+const VOTE_CASTED_SUBSCRIPTION = gql`
+  subscription VoteCasted($documentId: ID!) {
+    voteCasted(documentId: $documentId) {
+      id
+      type
+      value
+      section {
+        id
+        voteScore
+      }
+    }
+  }
+`;
+
 export const DocumentPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [sectionContent, setSectionContent] = useState('');
   const [parentSectionId, setParentSectionId] = useState<string | null>(null);
+  const [realtimeActivity, setRealtimeActivity] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'thread' | 'wiki'>('thread');
+  const [showLogicAnalysis, setShowLogicAnalysis] = useState(false);
+  const [analysisTarget, setAnalysisTarget] = useState<{ sectionId?: string; content?: string }>({});
   
   const { loading, error, data, refetch } = useQuery(GET_DOCUMENT, {
     variables: { id },
     skip: !id,
     errorPolicy: 'all'
   });
+
+  // Real-time subscriptions
+  useSubscription(SECTION_ADDED_SUBSCRIPTION, {
+    variables: { documentId: id },
+    skip: !id,
+    onData: ({ data }) => {
+      if (data?.data?.sectionAdded) {
+        setRealtimeActivity(`New section added by ${data.data.sectionAdded.author.username}`);
+        refetch(); // Refresh document data
+        setTimeout(() => setRealtimeActivity(null), 3000);
+      }
+    }
+  });
+
+  useSubscription(SECTION_UPDATED_SUBSCRIPTION, {
+    variables: { documentId: id },
+    skip: !id,
+    onData: ({ data }) => {
+      if (data?.data?.sectionUpdated) {
+        setRealtimeActivity(`Section updated by ${data.data.sectionUpdated.author.username}`);
+        refetch(); // Refresh document data
+        setTimeout(() => setRealtimeActivity(null), 3000);
+      }
+    }
+  });
+
+  useSubscription(VOTE_CASTED_SUBSCRIPTION, {
+    variables: { documentId: id },
+    skip: !id,
+    onData: ({ data }) => {
+      if (data?.data?.voteCasted) {
+        setRealtimeActivity(`Vote cast on section`);
+        refetch(); // Refresh document data to show updated vote scores
+        setTimeout(() => setRealtimeActivity(null), 3000);
+      }
+    }
+  });
+
+  // Show connection status
+  useEffect(() => {
+    if (id) {
+      console.log('📡 Subscribed to real-time updates for document:', id);
+    }
+  }, [id]);
 
   const [createSection, { loading: createLoading }] = useMutation(CREATE_SECTION, {
     onCompleted: () => {
@@ -84,6 +191,22 @@ export const DocumentPage: React.FC = () => {
       console.error('Error creating section:', error);
     }
   });
+
+  const [castVote] = useMutation(CAST_VOTE, {
+    onCompleted: () => {
+      refetch(); // Refresh to show updated vote scores
+    },
+    onError: (error) => {
+      console.error('Error casting vote:', error);
+    }
+  });
+
+  const handleSaveDocument = () => {
+    console.log('Document editing functionality to be implemented');
+    setEditMode(false);
+  };
+
+  const updateLoading = false; // Placeholder for future document update mutation
 
   if (!id) {
     return (
@@ -192,44 +315,221 @@ export const DocumentPage: React.FC = () => {
     }
   };
 
-  const SectionComponent: React.FC<{ section: any; depth?: number }> = ({ section, depth = 0 }) => (
-    <div className={`border-l-2 border-gray-200 ${depth > 0 ? 'ml-6 pl-4' : 'pl-4'} mb-4`}>
-      <div className="bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-900">
-              {section.author.username}
-            </span>
-            <span className="text-xs text-gray-500">
-              {formatDate(section.createdAt)}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">
-              Score: {section.voteScore}
-            </span>
-          </div>
-        </div>
-        <div className="prose prose-sm max-w-none">
-          <p className="text-gray-800 whitespace-pre-wrap">{section.content}</p>
-        </div>
-      </div>
+  const handleVote = async (sectionId: string, type: 'UP' | 'DOWN' | 'PROMOTE') => {
+    if (!user) {
+      alert('Please log in to vote');
+      return;
+    }
+
+    try {
+      await castVote({
+        variables: {
+          input: {
+            sectionId,
+            type
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error voting:', error);
+    }
+  };
+
+  // Enhanced Section Component with markup parsing
+  const SectionComponent: React.FC<{ section: any; depth?: number }> = ({ section, depth = 0 }) => {
+    const parsedContent = ClientMarkupParser.parseContent(section.content);
+    const blocksForView = ClientMarkupParser.renderForView(parsedContent.blocks, viewMode);
+    const metadata = ClientMarkupParser.extractMetadata(parsedContent.blocks);
+
+    // In wiki view, only show sections that have wiki-visible content
+    if (viewMode === 'wiki' && !ClientMarkupParser.isWikiVisible(parsedContent.blocks)) {
+      return null;
+    }
+
+    const MarkupBlockComponent: React.FC<{ block: any }> = ({ block }) => {
+      const getBlockStyle = () => {
+        switch (block.type) {
+          case 'consensus':
+            const consensusLevel = Math.round((block.attributes?.consensusLevel || 0) * 100);
+            return {
+              className: 'bg-green-50 border-l-4 border-green-400 p-3 mb-3',
+              header: `📊 Consensus: ${consensusLevel}%`
+            };
+          case 'debate':
+            return {
+              className: 'bg-orange-50 border-l-4 border-orange-400 p-3 mb-3',
+              header: `🔥 Active Debate: ${block.attributes?.debateTopic || 'General'}`
+            };
+          case 'synthesis':
+            const sources = block.attributes?.sources || [];
+            return {
+              className: 'bg-blue-50 border-l-4 border-blue-400 p-3 mb-3',
+              header: `🔗 Synthesis from: ${Array.isArray(sources) ? sources.join(', ') : sources}`
+            };
+          case 'wiki-primary':
+            return {
+              className: 'bg-purple-50 border-l-4 border-purple-400 p-3 mb-3',
+              header: viewMode === 'wiki' ? '📖 Primary Content' : null
+            };
+          case 'thread-only':
+            return {
+              className: 'bg-gray-50 border-l-4 border-gray-400 p-3 mb-3',
+              header: '💬 Discussion Only'
+            };
+          default:
+            return { className: 'mb-3', header: null };
+        }
+      };
+
+      const style = getBlockStyle();
       
-      {/* Render child sections */}
-      {section.children && section.children.length > 0 && (
-        <div className="mt-2">
-          {section.children
-            .sort((a: any, b: any) => a.position - b.position)
-            .map((child: any) => (
-              <SectionComponent key={child.id} section={child} depth={depth + 1} />
-            ))}
+      return (
+        <div className={style.className}>
+          {style.header && (
+            <div className="text-sm font-semibold text-gray-700 mb-2">
+              {style.header}
+            </div>
+          )}
+          <div className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+            {block.content}
+          </div>
         </div>
-      )}
-    </div>
-  );
+      );
+    };
+
+    return (
+      <div className={`border-l-2 ${depth > 0 ? 'border-blue-200 ml-6 pl-4' : 'border-gray-200 pl-4'} mb-4`}>
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
+                {section.author.username.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-sm font-medium text-gray-900">
+                {section.author.username}
+              </span>
+              <span className="text-xs text-gray-500">
+                {formatDate(section.createdAt)}
+              </span>
+              {depth > 0 && (
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                  Reply
+                </span>
+              )}
+              {/* Show markup indicators */}
+              {metadata.hasConsensus && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                  📊 Consensus
+                </span>
+              )}
+              {metadata.hasActiveDebate && (
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                  🔥 Debate
+                </span>
+              )}
+              {metadata.hasSynthesis && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                  🔗 Synthesis
+                </span>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">
+                Score: {section.voteScore}
+              </span>
+              {user && (
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => handleVote(section.id, 'UP')}
+                    className="text-gray-400 hover:text-green-600 text-sm"
+                    title="Upvote"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => handleVote(section.id, 'DOWN')}
+                    className="text-gray-400 hover:text-red-600 text-sm"
+                    title="Downvote"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    onClick={() => handleVote(section.id, 'PROMOTE')}
+                    className="text-gray-400 hover:text-blue-600 text-xs ml-2"
+                    title="Promote to Wiki"
+                  >
+                    ★
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAnalysisTarget({ sectionId: section.id, content: section.content });
+                      setShowLogicAnalysis(true);
+                    }}
+                    className="text-gray-400 hover:text-purple-600 text-xs ml-2"
+                    title="Analyze Logic"
+                  >
+                    🧠
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Render content blocks based on view mode */}
+          <div className="prose prose-sm max-w-none mb-3">
+            {blocksForView.length > 0 ? (
+              blocksForView.map((block: any, index: number) => (
+                <MarkupBlockComponent key={index} block={block} />
+              ))
+            ) : (
+              <div className="text-gray-500 italic">
+                {viewMode === 'wiki' ? 'No wiki content available' : 'No content available'}
+              </div>
+            )}
+          </div>
+
+          {user && (
+            <div className="flex items-center space-x-2 pt-2 border-t border-gray-100">
+              <button
+                onClick={() => handleAddSection(section.id)}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              >
+                💬 Reply
+              </button>
+              <span className="text-gray-300">•</span>
+              <span className="text-xs text-gray-500">
+                {section.children?.length || 0} replies
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {/* Render child sections */}
+        {section.children && section.children.length > 0 && (
+          <div className="mt-2">
+            {section.children
+              .sort((a: any, b: any) => a.position - b.position)
+              .map((child: any) => (
+                <SectionComponent key={child.id} section={child} depth={depth + 1} />
+              ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {/* Real-time Activity Notification */}
+      {realtimeActivity && (
+        <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-pulse">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+            <span className="text-sm">{realtimeActivity}</span>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="mb-6">
         <Link 
@@ -287,6 +587,32 @@ export const DocumentPage: React.FC = () => {
             </div>
           )}
 
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('thread')}
+                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                  viewMode === 'thread' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🧵 Thread View
+              </button>
+              <button
+                onClick={() => setViewMode('wiki')}
+                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                  viewMode === 'wiki' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📖 Wiki View
+              </button>
+            </div>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex gap-2">
             <button 
@@ -296,9 +622,23 @@ export const DocumentPage: React.FC = () => {
               Add Section
             </button>
             {isAuthor && (
-              <button className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                Edit Document
-              </button>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => setEditMode(!editMode)}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                >
+                  {editMode ? 'Cancel Edit' : 'Edit Document'}
+                </button>
+                {editMode && (
+                  <button 
+                    onClick={handleSaveDocument}
+                    disabled={updateLoading}
+                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
+                  >
+                    {updateLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -306,16 +646,133 @@ export const DocumentPage: React.FC = () => {
 
       {/* Sections */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">Sections</h2>
+        <h2 className="text-xl font-semibold text-gray-900">
+          {viewMode === 'wiki' ? 'Knowledge Base' : 'Sections'}
+        </h2>
         
         {document.sections && document.sections.length > 0 ? (
           <div>
-            {document.sections
-              .filter((section: any) => !section.parent) // Only show top-level sections
-              .sort((a: any, b: any) => a.position - b.position)
-              .map((section: any) => (
-                <SectionComponent key={section.id} section={section} />
-              ))}
+            {viewMode === 'wiki' ? (
+              // Wiki View: Basic format for now - will enhance shortly
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="divide-y divide-gray-200">
+                  {document.sections
+                    .filter((section: any) => !section.parent)
+                    .sort((a: any, b: any) => b.voteScore - a.voteScore)
+                    .map((section: any, index: number) => (
+                      <div key={section.id} className="p-6">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-medium">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <div className="text-sm text-gray-500">
+                                By {section.author.username} • {formatDate(section.createdAt)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-1 text-sm text-gray-500">
+                              <span className="text-green-600">▲</span>
+                              <span>{section.voteScore}</span>
+                            </div>
+                            {user && (
+                              <div className="flex items-center space-x-1">
+                                <button
+                                  onClick={() => handleVote(section.id, 'UP')}
+                                  className="text-gray-400 hover:text-green-600 text-xs"
+                                  title="Upvote"
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  onClick={() => handleVote(section.id, 'PROMOTE')}
+                                  className="text-gray-400 hover:text-blue-600 text-xs"
+                                  title="Promote"
+                                >
+                                  ★
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setAnalysisTarget({ sectionId: section.id, content: section.content });
+                                    setShowLogicAnalysis(true);
+                                  }}
+                                  className="text-gray-400 hover:text-purple-600 text-xs ml-2"
+                                  title="Analyze Logic"
+                                >
+                                  🧠
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="prose prose-sm max-w-none">
+                          <div className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                            {section.content}
+                          </div>
+                        </div>
+                        {section.children && section.children.length > 0 && (
+                          <div className="mt-4 pl-4 border-l-2 border-gray-100">
+                            <div className="text-sm text-gray-600 mb-2">
+                              {section.children.length} related discussion{section.children.length !== 1 ? 's' : ''}
+                            </div>
+                            <div className="space-y-2">
+                              {section.children
+                                .sort((a: any, b: any) => b.voteScore - a.voteScore)
+                                .slice(0, 3)
+                                .map((child: any) => (
+                                  <div key={child.id} className="text-sm bg-gray-50 p-3 rounded">
+                                    <div className="flex justify-between items-start mb-1">
+                                      <span className="font-medium text-gray-700">{child.author.username}:</span>
+                                      <div className="flex items-center space-x-1">
+                                        <span className="text-xs text-gray-500">{child.voteScore}</span>
+                                        {user && (
+                                          <>
+                                            <button
+                                              onClick={() => handleVote(child.id, 'UP')}
+                                              className="text-gray-400 hover:text-green-600 text-xs"
+                                              title="Upvote"
+                                            >
+                                              ▲
+                                            </button>
+                                            <button
+                                              onClick={() => {
+                                                setAnalysisTarget({ sectionId: child.id, content: child.content });
+                                                setShowLogicAnalysis(true);
+                                              }}
+                                              className="text-gray-400 hover:text-purple-600 text-xs ml-1"
+                                              title="Analyze Logic"
+                                            >
+                                              🧠
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="text-gray-600">
+                                      {child.content.length > 150 ? child.content.slice(0, 150) + '...' : child.content}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ) : (
+              // Thread View: Conversational format
+              <div>
+                {document.sections
+                  .filter((section: any) => !section.parent)
+                  .sort((a: any, b: any) => a.position - b.position)
+                  .map((section: any) => (
+                    <SectionComponent key={section.id} section={section} />
+                  ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
@@ -386,6 +843,17 @@ export const DocumentPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Logic Analysis Panel */}
+      <LogicAnalysisPanel
+        sectionId={analysisTarget.sectionId}
+        content={analysisTarget.content}
+        isVisible={showLogicAnalysis}
+        onClose={() => {
+          setShowLogicAnalysis(false);
+          setAnalysisTarget({});
+        }}
+      />
     </div>
   );
 };

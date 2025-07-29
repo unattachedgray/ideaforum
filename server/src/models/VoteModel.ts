@@ -10,7 +10,11 @@ export const VoteModel = {
   },
 
   async findByUserAndSection(userId: string, sectionId: string, type: VoteType): Promise<Vote | null> {
-    const vote = await getDb()<Vote>(TABLE_NAME).where({ userId, sectionId, type }).first();
+    const vote = await getDb()<Vote>(TABLE_NAME)
+      .where('user_id', userId)
+      .where('section_id', sectionId)
+      .where('type', type)
+      .first();
     return vote || null;
   },
 
@@ -23,7 +27,13 @@ export const VoteModel = {
   },
 
   async create(input: VoteInput & { userId: string; value: number }): Promise<Vote> {
-    const [vote] = await getDb()<Vote>(TABLE_NAME).insert(input).returning('*');
+    const dbInput = {
+      user_id: input.userId,
+      section_id: input.sectionId,
+      type: input.type,
+      value: input.value
+    };
+    const [vote] = await getDb()<Vote>(TABLE_NAME).insert(dbInput).returning('*');
     return vote;
   },
 
