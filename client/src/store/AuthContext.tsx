@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@shared/types';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User } from '@shared';
 import { client } from '../utils/apollo';
 
 interface AuthContextType {

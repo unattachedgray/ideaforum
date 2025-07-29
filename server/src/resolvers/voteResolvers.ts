@@ -1,5 +1,5 @@
 import { IResolvers } from '@graphql-tools/utils';
-import { Vote, VoteInput } from '@shared/types';
+import { Vote, VoteInput } from '@shared';
 import { Context } from '../utils/context';
 import { AuthenticationError, UserInputError } from 'apollo-server-express';
 import { VoteModel } from '../models/VoteModel';

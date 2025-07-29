@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
-import { AuthPayload } from '@shared/types';
+import { AuthPayload } from '@shared';
 import { GoogleLogin } from '@react-oauth/google';
 
 const REQUEST_LOGIN_LINK_MUTATION = gql`
@@ -32,7 +32,7 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
 
   const [requestLoginLink, { loading: emailLoading }] = useMutation(REQUEST_LOGIN_LINK_MUTATION);
-  const [loginWithGoogle, { loading: googleLoading }] = useMutation<{ loginWithGoogle: AuthPayload }>(LOGIN_WITH_GOOGLE_MUTATION);
+  const [loginWithGoogle] = useMutation<{ loginWithGoogle: AuthPayload }>(LOGIN_WITH_GOOGLE_MUTATION);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

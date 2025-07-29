@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, gql } from '@apollo/client';
 import { useAuth } from '../store/AuthContext';
-import { AuthPayload } from '@shared/types';
+import { AuthPayload } from '@shared';
 
 const LOGIN_WITH_TOKEN_MUTATION = gql`
   mutation LoginWithToken($token: String!) {

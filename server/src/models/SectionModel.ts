@@ -14,18 +14,18 @@ export const SectionModel = {
   },
 
   async getByAuthorIds(authorIds: string[]): Promise<Section[]> {
-    return await getDb()<Section>(TABLE_NAME).whereIn('authorId', authorIds);
+    return await getDb()<Section>(TABLE_NAME).whereIn('author_id', authorIds);
   },
 
   async getByDocumentIds(documentIds: string[]): Promise<Section[]> {
-    return await getDb()<Section>(TABLE_NAME).whereIn('documentId', documentIds);
+    return await getDb()<Section>(TABLE_NAME).whereIn('document_id', documentIds);
   },
 
   async getAll(options: SectionQueryOptions): Promise<Section[]> {
     const query = getDb()<Section>(TABLE_NAME);
-    if (options.documentId) query.where('documentId', options.documentId);
-    if (options.authorId) query.where('authorId', options.authorId);
-    if (options.parentId) query.where('parentId', options.parentId);
+    if (options.documentId) query.where('document_id', options.documentId);
+    if (options.authorId) query.where('author_id', options.authorId);
+    if (options.parentId) query.where('parent_id', options.parentId);
     if (options.wikiVisibility !== undefined) query.whereRaw(`metadata->>'wikiVisibility' = ?`, [options.wikiVisibility]);
     if (options.status) query.whereRaw(`metadata->>'status' = ?`, [options.status]);
     if (options.limit) query.limit(options.limit);

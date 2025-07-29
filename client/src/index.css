@@ -1,17 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: theme('colors.gray.50');
+    color: theme('colors.gray.700');
+    line-height: 1.6;
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: theme('colors.gray.900');
+    font-weight: 600;
+    line-height: 1.3;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer components {
+  /* Card Components */
+  .card {
+    @apply bg-white border border-gray-200 rounded shadow-card transition-all duration-200;
+  }
+
+  .card:hover {
+    @apply border-gray-300 shadow-card-hover;
+  }
+
+  /* Button Components */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500;
+  }
+
+  .btn-primary:hover {
+    @apply transform -translate-y-0.5;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500;
+  }
+
+  .btn-outline {
+    @apply btn border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500;
+  }
+
+  .btn-danger {
+    @apply btn bg-error-500 text-white hover:bg-red-600 focus:ring-error-500;
+  }
+
+  /* Form Components */
+  .form-input {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-sm shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200;
+  }
+
+  .form-textarea {
+    @apply form-input resize-none;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+
+  .form-error {
+    @apply text-sm text-error-500 mt-1;
+  }
+
+  /* Document Card */
+  .document-card {
+    @apply card p-6 hover:shadow-card-hover cursor-pointer;
+  }
+
+  .document-card-title {
+    @apply text-xl font-semibold text-gray-900 mb-2 hover:text-primary-600 transition-colors duration-200;
+  }
+
+  .document-card-description {
+    @apply text-gray-600 mb-3 line-clamp-2;
+  }
+
+  .document-card-meta {
+    @apply flex items-center justify-between text-sm text-gray-500;
+  }
+
+  .document-card-tags {
+    @apply flex flex-wrap gap-2 mb-3;
+  }
+
+  .document-card-tag {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700;
+  }
+
+  /* Section Components */
+  .section-card {
+    @apply card p-4 mb-4;
+  }
+
+  .section-header {
+    @apply flex items-start justify-between mb-3;
+  }
+
+  .section-author {
+    @apply flex items-center space-x-2;
+  }
+
+  .section-avatar {
+    @apply w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-sm font-medium text-gray-600;
+  }
+
+  .section-meta {
+    @apply text-sm text-gray-500;
+  }
+
+  .section-actions {
+    @apply flex items-center space-x-2;
+  }
+
+  .section-vote-btn {
+    @apply flex items-center space-x-1 px-2 py-1 rounded text-sm text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors duration-200;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply text-gray-600 hover:text-gray-900 px-3 py-2 rounded-sm text-sm font-medium transition-colors duration-200;
+  }
+
+  .nav-link.active {
+    @apply text-primary-600 bg-primary-50;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    @apply flex items-center space-x-2 text-sm text-gray-500 mb-4;
+  }
+
+  .breadcrumb-item {
+    @apply hover:text-gray-700 transition-colors duration-200;
+  }
+
+  .breadcrumb-separator {
+    @apply text-gray-400;
+  }
+
+  /* Loading States */
+  .loading-spinner {
+    @apply animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500;
+  }
+
+  /* Utility Classes */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }

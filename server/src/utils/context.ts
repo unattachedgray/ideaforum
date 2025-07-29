@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { User } from '@shared/types';
+import { User } from '@shared';
 import { verifyToken } from './jwt';
 import { createDataLoaders, DataLoaders } from './dataloaders';
 

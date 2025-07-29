@@ -28,15 +28,15 @@ export const userResolvers: IResolvers = {
   },
   Mutation: {
     requestLoginLink: async (_: any, { email }: { email: string }): Promise<boolean> => {
-      const user = await UserModel.findByEmail(email);
+      let user = await UserModel.findByEmail(email);
       if (!user) {
-        // Optionally create a new user here, or just send a link that allows signup
-        await UserModel.create({ email, username: email.split('@')[0] });
+        // Create a new user if they don't exist
+        user = await UserModel.create({ email, username: email.split('@')[0] });
       }
       
       const token = uuidv4();
       const redis = getRedisClient();
-      await redis.set(`login:${token}`, user!.id, { EX: 60 * 15 }); // 15-minute expiry
+      await redis.set(`login:${token}`, user.id, { EX: 60 * 15 }); // 15-minute expiry
 
       // In a real app, you would email this link to the user
       console.log(`Login link for ${email}: http://localhost:3000/login/token/${token}`);

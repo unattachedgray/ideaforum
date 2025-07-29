@@ -27,7 +27,7 @@
     "exactOptionalPropertyTypes": true,
     "baseUrl": "./src",
     "paths": {
-      "@shared/*": ["../../shared/types/*"],
+      "@shared": ["../../shared/dist/index"],
       "@components/*": ["./components/*"],
       "@pages/*": ["./pages/*"],
       "@hooks/*": ["./hooks/*"],

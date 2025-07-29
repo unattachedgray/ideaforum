@@ -1,5 +1,5 @@
 import { getDb } from '../utils/database';
-import { Vote, VoteInput, VoteType } from '@shared/types';
+import { Vote, VoteInput, VoteType } from '@shared';
 
 const TABLE_NAME = 'votes';
 
@@ -10,7 +10,7 @@ export const VoteModel = {
   },
 
   async findByUserAndSection(userId: string, sectionId: string, type: VoteType): Promise<Vote | null> {
-    const vote = await getDb()<Vote>(TABLE_NAME).where({ user_id: userId, section_id: sectionId, type }).first();
+    const vote = await getDb()<Vote>(TABLE_NAME).where({ userId, sectionId, type }).first();
     return vote || null;
   },
 

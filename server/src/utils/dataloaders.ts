@@ -1,5 +1,5 @@
 import DataLoader from 'dataloader';
-import { User, Document, Section, SectionVersion, Vote } from '@shared/types';
+import { User, Document, Section, SectionVersion, Vote } from '@shared';
 import { UserModel } from '../models/UserModel';
 import { DocumentModel } from '../models/DocumentModel';
 import { SectionModel } from '../models/SectionModel';
