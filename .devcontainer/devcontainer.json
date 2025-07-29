@@ -1,19 +1,23 @@
 // .devcontainer/devcontainer.json
-// For format details, see https://aka.ms/devcontainer.json
 {
-  "name": "Python 3 + Node.js 22 + Claude CLI (CUDA‑enabled)",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
+  "name": "Python 3 + Node.js 22 + Claude CLI (CUDA‑enabled)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
   "runArgs": [
     "--gpus",
     "all"
   ],
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-    "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "22"
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": "true",
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "installDirectlyFromGitHubRelease": "true",
+      "version": "latest"
     }
   },
   "customizations": {
@@ -23,37 +27,41 @@
         "ms-toolsai.jupyter",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        "saoudrizwan.claude-dev",
+        "graphql.vscode-graphql",
+        "bradlc.vscode-tailwindcss"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/bin/python",
+        "python.defaultInterpreterPath": "/opt/venv/bin/python", // Point to the venv python
         "python.languageServer": "Pylance"
       }
     }
   },
   "containerEnv": {
     "CUDA_VISIBLE_DEVICES": "0"
+    // The PATH override has been removed from here
   },
   "forwardPorts": [
     8888,
     6006,
-    5000
+    5000,
+    3000,
+    4000,
+    5432,
+    6379
   ],
   "mounts": [
-    // Persist Claude CLI auth
-    "source=${localEnv:HOME}/.config/claude,target=/home/vscode/.config/claude,type=bind",
-    // Persist npm cache
-    "source=${localEnv:HOME}/.npm,target=/home/vscode/.npm,type=bind",
-    // Persist pip cache
+    "source=${localEnv:HOME}/.config/claude,target=/home/vscode/.config/claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude-code,target=/home/vscode/.claude-code,type=bind",
+    "source=${localEnv:HOME}/.npm-global,target=/home/vscode/.npm-global,type=bind",
     "source=${localEnv:HOME}/.cache/pip,target=/home/vscode/.cache/pip,type=bind",
-    // Persist Git identity & settings
-    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind",
-    // Persist SSH keys (read‑only)
-    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh:ro,type=bind",
-    // Persist GitHub CLI credentials
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly,type=bind",
     "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind"
   ],
   "remoteUser": "vscode",
-  "postCreateCommand": "/bin/bash .devcontainer/setup-claude.sh"
+  "updateRemoteUserUID": true,
+  // Simplified postCreateCommand
+  "postCreateCommand": "git config --global user.name 'julian' && git config --global user.email 'opticalsense@gmail.com' && if [ -f .devcontainer/setup-claude.sh ]; then bash .devcontainer/setup-claude.sh; fi && claude whoami || echo '⚠️ Claude not authenticated.'"
 }
-
